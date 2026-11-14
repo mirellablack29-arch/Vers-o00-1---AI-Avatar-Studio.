@@ -434,4 +434,32 @@ dl(a[0].blob,"avatar-ia."+(a[0].blob.type.includes("png")?"png":"jpg"))}catch(e)
 $("#cpy").onclick=()=>{navigator.clipboard.writeText($("#colab").textContent).then(()=>{$("#cpy").textContent="✅ Copiado"},()=>{$("#cpy").textContent="Não foi possível copiar; selecione o texto"})};
 
 ui();draw();
-</script></body></html>
+</script>
+  
+
+<div id="boasVindas" style="position:fixed;inset:0;z-index:9999;background:linear-gradient(145deg,#171329,#493078);color:white;font-family:Arial;text-align:center;overflow:auto;padding:28px 16px">
+  
+<h1>✨ AI Avatar Studio</h1>
+<p>
+<div style="display:flex;gap:12px;max-width:500px;margin:28px auto">
+<div style="flex:1">
+<img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500" style="width:100%;height:210px;object-fit:cover;border-radius:18px">
+<p><b>Apresentadora</b></p>
+</div>
+<div style="flex:1">
+<img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500" style="width:100%;height:210px;object-fit:cover;border-radius:18px">
+<p><b>Apresentador</b></p>
+</div>
+</div>
+<p>Crie seu apresentador virtual e dê vida às suas ideias!</p>
+<p>Escolha seu caminho para começar:</p>
+<button onclick="entrarNoStudio()" style="background:#a78bfa;color:#171329;border:0;border-radius:14px;padding:16px 25px;font-size:17px;font-weight:bold;width:90%;max-width:320px">🚀 Criar meu avatar</button>
+  
+</div>
+   <script>
+function entrarNoStudio(){
+document.getElementById('boasVindas').remove();
+document.querySelector('#nav button').click();
+}
+</script>
+</body></html>

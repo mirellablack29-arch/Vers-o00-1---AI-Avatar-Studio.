@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Avatar Studio</title>
+<style>
+:root{--bg:#f6f5fb;--card:#fff;--tx:#1d1b2e;--mu:#6b6882;--ac:#6c4cf1;--on:#fff;--bd:#e3e0f0;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141320;--card:#1e1c30;--tx:#f0eefb;--mu:#a09cbf;--ac:#8b73ff;--on:#10101a;--bd:#34314f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141320;--card:#1e1c30;--tx:#f0eefb;--mu:#a09cbf;--ac:#8b73ff;--on:#10101a;--bd:#34314f;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:560px;margin:0 auto}
+header{padding:12px 16px 4px;display:flex;justify-content:space-between;align-items:center}
+h1{font-size:18px;margin:0}h1 small{color:var(--mu);font-weight:400;font-size:12px;margin-left:6px}
+#stage{position:sticky;top:0;z-index:5;background:var(--bg);padding:4px 16px;text-align:center}
+#stage svg{height:min(36vh,300px);width:auto;max-width:100%;border-radius:18px;border:1px solid var(--bd)}
+nav{display:flex;gap:4px;padding:8px 12px;overflow-x:auto}
+nav button{flex:1;min-width:64px;padding:9px 6px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:12px;font-size:13px}
+nav button.on{background:var(--ac);color:var(--on);border-color:var(--ac)}
+.panel{display:none;padding:4px 16px 40px}.panel.on{display:block}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:12px;margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:13px;color:var(--mu);text-transform:uppercase;letter-spacing:.04em}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:7px 12px;border-radius:999px;border:1px solid var(--bd);background:transparent;color:var(--tx);font-size:14px}
+.chip.on{background:var(--ac);color:var(--on);border-color:var(--ac)}
+.sw{width:34px;height:34px;border-radius:50%;border:2px solid var(--bd);padding:0}
+.sw.on{outline:3px solid var(--ac);outline-offset:1px}
+.btn{padding:12px 16px;border-radius:12px;border:0;background:var(--ac);color:var(--on);font-size:15px;font-weight:600}
+.btn.s{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row .btn{flex:1}
+input[type=text],textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit}
+textarea{min-height:90px}label{display:block;margin:8px 0 4px;color:var(--mu);font-size:13px}
+input[type=range]{width:100%}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:8px;text-align:center}
+.g svg{width:100%;height:auto;border-radius:10px}.g b{display:block;font-size:13px;margin:4px 0}
+.g .row .btn{padding:7px;font-size:13px}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;margin-right:6px}
+.ok{background:#1f9d5522;color:#1f9d55}.no{background:#d9822b22;color:#d9822b}
+li{margin-bottom:10px}ul{padding-left:18px;margin:0}#iaImg{width:100%;border-radius:14px;display:none;margin-top:8px}.g img{display:block}
+video{width:100%;border-radius:14px;background:#000;display:none;margin-top:8px}
+#modal{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;flex-direction:column;z-index:20;padding:20px;color:#fff;text-align:center}
+#modal img{max-width:90%;max-height:65vh;border-radius:12px}
+.m{color:var(--mu);font-size:13px}
+</style></head><body>
+<header><h1>AI Avatar Studio<small>v2.0 · beta</small></h1></header>
+<div id="stage"></div>
+<nav id="nav"></nav>
+
+<section class="panel on" id="p-criar">
+<div id="ctl"></div>
+<div class="card"><h3>Nome e ações</h3>
+<input type="text" id="nome" placeholder="Nome do personagem" maxlength="30">
+<div class="row" style="margin-top:10px"><button class="btn s" id="rnd">🎲 Aleatório</button><button class="btn" id="save">💾 Salvar</button></div>
+<div class="row" style="margin-top:8px"><button class="btn s" id="png">🖼️ Exportar PNG</button></div></div>
+</section>
+
+<section class="panel" id="p-voz">
+<div class="card"><h3>Avatar falando</h3>
+<label>Texto</label><textarea id="txt">Olá! Eu sou o seu avatar criado no AI Avatar Studio.</textarea>
+<label>Voz do aparelho</label><select id="voz"></select>
+<label>Velocidade</label><input type="range" id="rate" min="0.6" max="1.4" step="0.1" value="1">
+<label>Tom</label><input type="range" id="pitch" min="0.6" max="1.6" step="0.1" value="1">
+<div class="row" style="margin-top:12px"><button class="btn" id="fala">▶️ Falar</button><button class="btn s" id="para">⏹️ Parar</button></div>
+<p class="m" id="vmsg"></p></div>
+<p class="m">A voz usa o sintetizador do próprio celular (grátis, sem enviar dados). A boca se mexe de forma simulada enquanto a voz toca; ainda não é sincronização labial real.</p>
+</section>
+
+<section class="panel" id="p-ia">
+<div class="card"><h3>Gerar imagem com IA</h3>
+<p class="m">Usa o serviço gratuito Pollinations (conexão externa). Limites: fila lenta, uso não comercial e sujeito a mudanças. Se faltar rede ou o serviço cair, a geração falha: não existe imagem simulada. O texto do pedido é enviado a esse terceiro; não escreva dados pessoais nem nomes de pessoas reais.</p>
+<button class="btn s" id="iaSync" style="width:100%">↔️ Copiar traços do meu avatar 2D</button>
+<div id="iaf"></div>
+<label>Detalhe extra (opcional, em inglês)</label><input type="text" id="iaX" maxlength="80">
+<label style="display:flex;gap:8px;align-items:flex-start;color:var(--tx)"><input type="checkbox" id="iaOk"> Confirmo que não vou recriar uma pessoa real nem gerar menores de idade.</label>
+<button class="btn" id="iaGen" style="width:100%;margin-top:10px">✨ Gerar</button>
+<p class="m" id="iaMsg"></p><img id="iaImg" alt="Imagem gerada por IA">
+<div class="row" style="margin-top:8px"><button class="btn" id="iaSave" style="display:none">💾 Salvar na galeria</button></div></div></section>
+
+<section class="panel" id="p-gal"><h3 class="m">Avatares 2D</h3><div class="grid" id="gal"></div><p class="m" id="galmsg"></p><h3 class="m" style="margin-top:18px">Imagens por IA</h3><div class="grid" id="galia"></div></section>
+
+<section class="panel" id="p-aut">
+<div class="card"><h3>Autorização de uso de rosto</h3>
+<p class="m">Cadastro local para o futuro recurso de troca de rosto. A troca em vídeo ainda NÃO existe. Aqui só se guarda a foto e a declaração, neste aparelho; nada é enviado. Apenas pessoas maiores de 18 anos.</p>
+<label>Nome da pessoa</label><input type="text" id="autNome" maxlength="60">
+<label>Quem é</label><select id="autTipo"><option>Sou eu mesmo(a)</option><option>Outra pessoa adulta que autorizou</option></select>
+<label>Foto autorizada</label><input type="file" id="autFile" accept="image/*">
+<label style="display:flex;gap:8px;align-items:flex-start;color:var(--tx)"><input type="checkbox" id="autOk1"> Tenho autorização explícita desta pessoa adulta para usar este rosto.</label>
+<label style="display:flex;gap:8px;align-items:flex-start;color:var(--tx)"><input type="checkbox" id="autOk2"> Sei que posso apagar este registro a qualquer momento.</label>
+<button class="btn" id="autSave" style="width:100%;margin-top:10px">Registrar autorização</button><p class="m" id="autMsg"></p></div>
+<div class="grid" id="autList"></div></section>
+
+<section class="panel" id="p-cam">
+<div class="card"><h3>Câmera (somente pré-visualização)</h3>
+<p class="m">Esta etapa só testa a permissão da câmera do aparelho. Nenhum processamento facial, gravação ou envio acontece.</p>
+<label style="display:flex;gap:8px;align-items:flex-start;color:var(--tx)"><input type="checkbox" id="cons"> Entendo que só devo usar rostos meus ou de pessoas que autorizaram.</label>
+<div class="row" style="margin-top:10px"><button class="btn" id="camOn">Ligar câmera</button><button class="btn s" id="camOff">Desligar</button></div>
+<video id="vid" playsinline muted></video><p class="m" id="cmsg"></p></div>
+</section>
+
+<section class="panel" id="p-rot">
+<div class="card"><h3>Estado do projeto</h3><ul>
+<li><span class="tag ok">Pronto</span>Criador de avatar 2D (rosto, cabelo, roupa, expressão, óculos).</li>
+<li><span class="tag ok">Pronto</span>Animação simples: piscar, respirar e boca falando.</li>
+<li><span class="tag ok">Pronto</span>Voz via sintetizador do navegador (pt-BR, depende do aparelho).</li>
+<li><span class="tag ok">Pronto</span>Galeria salva neste aparelho e exportação em PNG.</li>
+<li><span class="tag ok">Pronto</span>Teste de permissão da câmera.</li>
+<li><span class="tag ok">Pronto</span>Geração de imagens por IA via Pollinations (grátis, anônimo, limitado). Só funciona com internet e fora da pré-visualização do Claude. A qualidade e o realismo dependem do serviço, não do app.</li><li><span class="tag ok">Pronto</span>Avatares feminino e masculino, barba, brinco e boné no modo 2D.</li><li><span class="tag ok">Pronto</span>Cadastro local de autorizações (foto + declaração).</li><li><span class="tag no">Não feito</span>Animação facial de imagens de IA e sincronização labial real. Só existe o gancho AAS.animacao.setBoca para o avatar 2D.</li>
+<li><span class="tag no">Não feito</span>Troca de rosto em vídeo. Exige back-end com GPU e verificação de autorização; o cadastro da aba Autorizações é só a base.</li>
+<li><span class="tag no">Não feito</span>Troca facial em tempo real (depende da etapa anterior).</li>
+<li><span class="tag no">Não feito</span>Conta de usuário e galeria na nuvem.</li>
+</ul></div></section>
+
+<div id="modal"><p>Segure a imagem para salvar no celular</p><img id="mimg" alt="Avatar exportado"><button class="btn" style="margin-top:12px" onclick="this.parentNode.style.display='none'">Fechar</button></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const SK=["#f8d9c4","#efc09b","#d9a074","#b57a52","#8a5636","#5e3a24"];
+const HC=["#1c1410","#4a2c1a","#8b5a2b","#d4a954","#b5382a","#8c8c96","#5b3fd0"];
+const EC=["#3b2a1a","#2f6fb5","#3c8a4f","#7a8a8f"];
+const OC=["#6c4cf1","#e24a6f","#2fa36b","#2b6fd9","#2b2b33","#e8a02e"];
+const BG=["#dfe7ff","#ffe3ea","#dff5e8","#fff1d6","#2a2840","#e9e9ee"];
+const OPT=[
+["gen","Gênero do avatar",[["fem","Feminino"],["masc","Masculino"]]],
+["face","Formato do rosto",[["56","Fino"],["62","Médio"],["68","Largo"]]],
+["hair","Cabelo",[["curto","Curto"],["longo","Longo"],["coque","Coque"],["cacheado","Cacheado"],["careca","Careca"]]],
+["outfit","Roupa",[["camiseta","Camiseta"],["social","Social"],["moletom","Moletom"]]],
+["expr","Expressão",[["neutro","Neutro"],["feliz","Feliz"],["triste","Triste"],["bravo","Bravo"],["surpreso","Surpreso"]]],
+["glasses","Óculos",[["0","Sem"],["1","Com"]]],
+["beard","Barba",[["nenhuma","Sem"],["curta","Curta"],["cheia","Cheia"]]],
+["earring","Brinco",[["0","Sem"],["1","Com"]]],
+["cap","Boné",[["0","Sem"],["1","Com"]]]];
+const COL=[["skin","Pele",SK],["hairColor","Cor do cabelo",HC],["eye","Olhos",EC],["outfitColor","Cor da roupa",OC],["bg","Fundo",BG]];
+const DEF={gen:"fem",beard:"nenhuma",earring:"0",cap:"0",face:"62",hair:"curto",outfit:"camiseta",expr:"feliz",glasses:"0",skin:SK[1],hairColor:HC[1],eye:EC[1],outfitColor:OC[0],bg:BG[0]};
+let S={...DEF};let blink=false,mouth=null;
+
+function R(s,o={}){
+const w=+s.face+(s.gen==="masc"?4:0),sk=s.skin,hc=s.hairColor,m=o.mouth,e=s.expr;
+const dk="#2a1515",fem=s.gen!=="masc",mk=s.beard!=="nenhuma"?"#e9a3a3":fem?"#b8334f":dk;
+let h="",hb="";
+if(s.hair==="longo")hb=`<path d="M80 130Q75 60 150 55Q225 60 220 130L228 265Q150 280 72 265Z" fill="${hc}"/>`;
+if(s.hair==="coque")hb=`<circle cx="150" cy="46" r="24" fill="${hc}"/>`;
+if(s.hair==="cacheado")hb=[[88,95],[108,70],[135,58],[165,58],[192,70],[212,95],[84,125],[216,125]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="24" fill="${hc}"/>`).join("");
+if(s.hair!=="careca")h=`<path d="M${150-w-4} 135Q${150-w-6} 62 150 58Q${150+w+6} 62 ${150+w+4} 135Q${150+w-12} 98 150 94Q${150-w+12} 98 ${150-w-4} 135Z" fill="${hc}"/>`;
+let body=`<path d="M30 340Q40 252 150 242Q260 252 270 340Z" fill="${s.outfitColor}"/>`;
+if(s.outfit==="camiseta")body+=`<ellipse cx="150" cy="246" rx="30" ry="14" fill="${sk}"/>`;
+if(s.outfit==="social")body+=`<path d="M120 244L150 290L180 244L165 240L150 262L135 240Z" fill="#fff"/><path d="M146 262h8l4 40h-16z" fill="#222"/>`;
+if(s.outfit==="moletom")body+=`<ellipse cx="150" cy="248" rx="38" ry="16" fill="none" stroke="#0004" stroke-width="10"/><path d="M135 262v40M165 262v40" stroke="#fff8" stroke-width="3"/>`;
+const eyeRy=e==="surpreso"?10:e==="bravo"?6:e==="triste"?7:8;
+const eyes=[122,178].map(x=>blink?`<path d="M${x-8} 138h16" stroke="${dk}" stroke-width="3" stroke-linecap="round"/>`:`<ellipse cx="${x}" cy="138" rx="9" ry="${eyeRy}" fill="#fff"/><circle cx="${x}" cy="138" r="5" fill="${s.eye}"/><circle cx="${x}" cy="138" r="2.4" fill="#000"/>`).join("");
+const BR={neutro:"M108 120L136 120",feliz:"M108 117Q122 110 136 117",triste:"M108 125L136 115",bravo:"M108 114L136 123",surpreso:"M108 110Q122 103 136 110"}[e];
+const brows=`<path d="${BR}" stroke="${hc}" stroke-width="4" fill="none" stroke-linecap="round"/><g transform="translate(300 0) scale(-1 1)"><path d="${BR}" stroke="${hc}" stroke-width="4" fill="none" stroke-linecap="round"/></g>`;
+let mo;
+if(m!=null)mo=`<ellipse cx="150" cy="184" rx="${12+m*4}" ry="${2+m*11}" fill="${dk}"/>`;
+else mo={neutro:`<path d="M132 184Q150 187 168 184" stroke="${dk}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+feliz:`<path d="M126 177Q150 203 174 177Z" fill="${dk}"/><path d="M134 181Q150 190 166 181Z" fill="#fff"/>`,
+triste:`<path d="M132 192Q150 178 168 192" stroke="${dk}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+bravo:`<path d="M134 188H166" stroke="${dk}" stroke-width="4" stroke-linecap="round"/>`,
+surpreso:`<ellipse cx="150" cy="188" rx="9" ry="12" fill="${dk}"/>`}[e];
+mo=mo.split(dk).join(mk);
+const lash=fem&&!blink?[122,178].map(x=>`<path d="M${x-10} 133Q${x} ${138-eyeRy-4} ${x+10} 133" stroke="${dk}" stroke-width="3" fill="none"/>`).join(""):"";
+const bd=s.beard==="nenhuma"?"":`<path d="M${150-w+2} 150Q${150-w} 222 150 228Q${150+w} 222 ${150+w-2} 150Q150 ${s.beard==="cheia"?168:196} ${150-w+2} 150Z" fill="${hc}" opacity="${s.beard==="cheia"?1:.55}"/>`;
+const er=s.earring==="1"?[-1,1].map(d=>`<circle cx="${150+d*w}" cy="164" r="4" fill="#e8b923"/>`).join(""):"";
+const cp=s.cap==="1"?`<path d="M${150-w-6} 114Q${150-w-4} 42 150 40Q${150+w+4} 42 ${150+w+6} 114Z" fill="${s.outfitColor}"/><ellipse cx="150" cy="114" rx="${w+16}" ry="8" fill="${s.outfitColor}" stroke="#0003" stroke-width="2"/>`:"";
+const gl=s.glasses==="1"?`<g fill="none" stroke="#222" stroke-width="3"><circle cx="122" cy="138" r="18"/><circle cx="178" cy="138" r="18"/><path d="M140 136h20"/></g>`:"";
+return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 340" width="300" height="340"><rect width="300" height="340" fill="${s.bg}"/>${hb}<g class="br">${body}<rect x="130" y="196" width="40" height="52" rx="14" fill="${sk}"/><path d="M130 220Q150 238 170 220V232Q150 246 130 232Z" fill="#0002"/><ellipse cx="${150-w}" cy="146" rx="9" ry="16" fill="${sk}"/><ellipse cx="${150+w}" cy="146" rx="9" ry="16" fill="${sk}"/><ellipse cx="150" cy="142" rx="${w}" ry="78" fill="${sk}"/>${bd}${h}${eyes}${lash}${brows}<path d="M150 146Q143 164 150 168" stroke="#0003" stroke-width="3" fill="none" stroke-linecap="round"/>${mo}${gl}${er}${cp}</g></svg>`}
+
+function draw(){$("#stage").innerHTML=R(S,{mouth});}
+function ui(){
+const c=$("#ctl");c.innerHTML="";
+OPT.forEach(([k,t,list])=>{const d=document.createElement("div");d.className="card";d.innerHTML=`<h3>${t}</h3><div class="chips"></div>`;
+list.forEach(([v,l])=>{const b=document.createElement("button");b.className="chip"+(S[k]===v?" on":"");b.textContent=l;b.onclick=()=>{S[k]=v;ui();draw()};d.lastChild.appendChild(b)});c.appendChild(d)});
+COL.forEach(([k,t,list])=>{const d=document.createElement("div");d.className="card";d.innerHTML=`<h3>${t}</h3><div class="chips"></div>`;
+list.forEach(v=>{const b=document.createElement("button");b.className="sw"+(S[k]===v?" on":"");b.style.background=v;b.setAttribute("aria-label",t);b.onclick=()=>{S[k]=v;ui();draw()};d.lastChild.appendChild(b)});c.appendChild(d)});
+}
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+$("#rnd").onclick=()=>{OPT.forEach(([k,,l])=>S[k]=pick(l)[0]);COL.forEach(([k,,l])=>S[k]=pick(l));ui();draw()};
+
+/* Abas */
+const TABS=[["criar","Criar"],["ia","IA"],["voz","Voz"],["gal","Galeria"],["aut","Autorizações"],["cam","Câmera"],["rot","Roteiro"]];
+TABS.forEach(([id,l],i)=>{const b=document.createElement("button");b.textContent=l;if(!i)b.className="on";b.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));b.classList.add("on");document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("on",p.id==="p-"+id));if(id==="gal")gal();if(id==="aut")autList();location.hash=id};$("#nav").appendChild(b)});
+
+/* Animação: piscar */
+setInterval(()=>{blink=true;draw();setTimeout(()=>{blink=false;draw()},140)},3400);
+
+/* Voz */
+let speaking=false,mt=null,voices=[];
+function loadV(){if(!("speechSynthesis" in window)){$("#vmsg").textContent="Este navegador não suporta voz. Tente o Chrome.";return}
+voices=speechSynthesis.getVoices();const pt=voices.filter(v=>v.lang.toLowerCase().startsWith("pt"));const l=pt.length?pt:voices;
+$("#voz").innerHTML=l.map(v=>`<option value="${v.name}">${v.name} (${v.lang})</option>`).join("");
+if(!pt.length)$("#vmsg").textContent="Nenhuma voz em português encontrada neste aparelho; usando outra voz."}
+if("speechSynthesis" in window){speechSynthesis.onvoiceschanged=loadV;loadV()}else loadV();
+function stopF(){speaking=false;clearInterval(mt);mouth=null;draw()}
+$("#fala").onclick=()=>{if(!("speechSynthesis" in window))return;speechSynthesis.cancel();
+const u=new SpeechSynthesisUtterance($("#txt").value);u.lang="pt-BR";
+const v=voices.find(x=>x.name===$("#voz").value);if(v){u.voice=v;u.lang=v.lang}
+u.rate=+$("#rate").value;u.pitch=+$("#pitch").value;
+u.onstart=()=>{speaking=true;clearInterval(mt);mt=setInterval(()=>{mouth=Math.random()*.9+.1;draw()},120)};
+u.onend=u.onerror=stopF;speechSynthesis.speak(u);
+window.scrollTo({top:0,behavior:"smooth"})};
+$("#para").onclick=()=>{if("speechSynthesis" in window)speechSynthesis.cancel();stopF()};
+
+/* Galeria (localStorage por aparelho) */
+function load(){try{return JSON.parse(localStorage.getItem("aas:gal")||"[]")}catch(e){return null}}
+function store(a){try{localStorage.setItem("aas:gal",JSON.stringify(a));return true}catch(e){return false}}
+$("#save").onclick=()=>{const a=load();if(a===null){alert("Armazenamento indisponível neste navegador.");return}
+a.unshift({id:Date.now(),name:$("#nome").value.trim()||"Sem nome",s:{...S}});
+if(store(a))alert("Salvo na galeria deste aparelho.");else alert("Não foi possível salvar.")};
+function gal(){galIA();const a=load()||[];const g=$("#gal");g.innerHTML="";
+$("#galmsg").textContent=a.length?"Salvo apenas neste aparelho e navegador.":"Nenhuma criação salva ainda. Crie um avatar e toque em Salvar.";
+a.forEach(it=>{const d=document.createElement("div");d.className="g";d.innerHTML=R({...DEF,...it.s})+`<b></b><div class="row"><button class="btn s">Editar</button><button class="btn s">🗑️</button></div>`;
+d.querySelector("b").textContent=it.name;
+const [e,x]=d.querySelectorAll("button");
+e.onclick=()=>{S={...DEF,...it.s};$("#nome").value=it.name;ui();draw();document.querySelector("nav button").click()};
+x.onclick=()=>{if(confirm("Excluir esta criação?")){store((load()||[]).filter(i=>i.id!==it.id));gal()}};
+g.appendChild(d)})}
+
+/* Exportar PNG */
+$("#png").onclick=()=>{const svg=R(S);const img=new Image();
+img.onload=()=>{const c=document.createElement("canvas");c.width=900;c.height=1020;c.getContext("2d").drawImage(img,0,0,900,1020);
+$("#mimg").src=c.toDataURL("image/png");$("#modal").style.display="flex"};
+img.onerror=()=>alert("Falha ao exportar.");
+img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)};
+
+/* Câmera: apenas preview */
+let stream=null;
+$("#camOn").onclick=async()=>{if(!$("#cons").checked){$("#cmsg").textContent="Marque a confirmação de consentimento primeiro.";return}
+try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"}});const v=$("#vid");v.srcObject=stream;v.style.display="block";v.play();$("#cmsg").textContent="Câmera ativa (somente neste aparelho)."}
+catch(e){$("#cmsg").textContent="Não foi possível acessar a câmera: permissão negada ou bloqueada neste ambiente."}};
+$("#camOff").onclick=()=>{if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$("#vid").style.display="none";$("#cmsg").textContent="Câmera desligada."};
+
+/* ===== v2: armazenamento IndexedDB (imagens IA e autorizações) ===== */
+const DB=()=>new Promise((ok,no)=>{try{const q=indexedDB.open("aas",1);q.onupgradeneeded=()=>{q.result.createObjectStore("ia",{keyPath:"id"});q.result.createObjectStore("aut",{keyPath:"id"})};q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)}catch(e){no(e)}});
+const tx=async(st,mode,fn)=>{const db=await DB();return new Promise((ok,no)=>{const t=db.transaction(st,mode),q=fn(t.objectStore(st));t.oncomplete=()=>ok(q&&q.result);t.onerror=()=>no(t.error)})};
+
+/* ===== v2: geração por IA (adaptador Pollinations) ===== */
+const IAF=[
+["gen","Gênero",[["woman","Mulher adulta"],["man","Homem adulto"]]],
+["age","Idade",[["aged 25","Cerca de 25 anos"],["aged 35","Cerca de 35 anos"],["aged 45","Cerca de 45 anos"],["aged 60","Cerca de 60 anos"]]],
+["skin","Tom de pele",[["light skin","Claro"],["medium olive skin","Médio"],["tan brown skin","Moreno"],["dark brown skin","Escuro"]]],
+["hair","Cabelo",[["short hair","Curto"],["long hair","Longo"],["curly hair","Cacheado"],["hair in a bun","Coque"],["bald","Careca"]]],
+["hcol","Cor do cabelo",[["black","Preto"],["brown","Castanho"],["blonde","Loiro"],["red","Ruivo"],["gray","Grisalho"]]],
+["beard","Barba",[["","Sem barba"],["with a short beard","Curta"],["with a full beard","Cheia"]]],
+["outfit","Roupa",[["casual t-shirt","Camiseta"],["business blazer and shirt","Social"],["hoodie","Moletom"]]],
+["expr","Expressão",[["neutral expression","Neutra"],["smiling warmly","Sorrindo"],["serious look","Séria"],["surprised expression","Surpresa"]]],
+["glasses","Óculos",[["","Sem"],["wearing glasses","Com"]]],
+["style","Estilo",[["photorealistic studio portrait, soft lighting, natural skin texture","Foto realista"],["3D animated character render, stylized","Personagem 3D"],["detailed digital illustration","Ilustração"]]]];
+$("#iaf").innerHTML=IAF.map(([k,t,o])=>`<label>${t}</label><select id="f-${k}">${o.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select>`).join("");
+const fv=k=>$("#f-"+k).value, imsg=t=>{$("#iaMsg").textContent=t};
+function mkPrompt(){return [fv("style")+", portrait of a fictional "+fv("age")+" "+fv("gen"),fv("skin"),(fv("hair")==="bald"?"":fv("hcol")+" ")+fv("hair"),fv("beard"),fv("outfit"),fv("expr"),fv("glasses"),$("#iaX").value.trim(),"plain neutral background, adult"].filter(Boolean).join(", ")}
+$("#iaSync").onclick=()=>{const set=(k,v)=>{$("#f-"+k).value=v};
+set("gen",S.gen==="masc"?"man":"woman");
+set("skin",["light skin","light skin","medium olive skin","tan brown skin","dark brown skin","dark brown skin"][SK.indexOf(S.skin)]||"medium olive skin");
+set("hair",{curto:"short hair",longo:"long hair",coque:"hair in a bun",cacheado:"curly hair",careca:"bald"}[S.hair]);
+set("hcol",["black","brown","brown","blonde","red","gray","black"][HC.indexOf(S.hairColor)]||"brown");
+set("beard",{nenhuma:"",curta:"with a short beard",cheia:"with a full beard"}[S.beard]);
+set("outfit",{camiseta:"casual t-shirt",social:"business blazer and shirt",moletom:"hoodie"}[S.outfit]);
+set("expr",{neutro:"neutral expression",feliz:"smiling warmly",triste:"serious look",bravo:"serious look",surpreso:"surprised expression"}[S.expr]);
+set("glasses",S.glasses==="1"?"wearing glasses":"");imsg("Traços copiados. Ajuste e toque em Gerar.")};
+let iaUrl="",iaPrompt="";
+$("#iaGen").onclick=()=>{if(!$("#iaOk").checked){imsg("Marque a confirmação antes de gerar.");return}
+iaPrompt=mkPrompt();iaUrl="https://image.pollinations.ai/prompt/"+encodeURIComponent(iaPrompt)+"?width=768&height=1024&seed="+Math.floor(Math.random()*1e6);
+const im=$("#iaImg"),b=$("#iaGen");im.style.display="none";$("#iaSave").style.display="none";b.disabled=true;
+imsg("Gerando… pode levar de 10 a 60 segundos.");
+im.onload=()=>{im.style.display="block";$("#iaSave").style.display="block";b.disabled=false;imsg("Pronto. Imagem gerada por IA de uma pessoa fictícia.")};
+im.onerror=()=>{b.disabled=false;imsg("Não foi possível gerar. Causas possíveis: limite do serviço gratuito (tente de novo em 15 s), serviço fora do ar ou rede externa bloqueada neste ambiente (como na pré-visualização do Claude). Teste pelo seu site no GitHub Pages.")};
+im.src=iaUrl};
+$("#iaSave").onclick=async()=>{const rec={id:Date.now(),t:new Date().toLocaleString("pt-BR"),prompt:iaPrompt,url:iaUrl};
+try{try{const x=await fetch(iaUrl);if(x.ok)rec.blob=await x.blob()}catch(e){}
+await tx("ia","readwrite",s=>s.put(rec));imsg(rec.blob?"Salvo na galeria (imagem guardada neste aparelho).":"Salvo só o link e o texto do pedido; não foi possível copiar a imagem.")}catch(e){imsg("Não foi possível salvar (armazenamento indisponível).")}};
+async function galIA(){const g=$("#galia");g.innerHTML="";
+try{const a=(await tx("ia","readonly",s=>s.getAll()))||[];a.sort((x,y)=>y.id-x.id);
+if(!a.length)g.innerHTML='<p class="m">Nenhuma imagem de IA salva.</p>';
+a.forEach(it=>{const src=it.blob?URL.createObjectURL(it.blob):it.url;const d=document.createElement("div");d.className="g";
+d.innerHTML='<img alt="Imagem de IA" style="width:100%;border-radius:10px"><b><span class="tag ok">IA</span><span></span></b><div class="row"><button class="btn s">Ver</button><button class="btn s">🗑️</button></div>';
+d.querySelector("img").src=src;d.querySelector("b span:last-child").textContent=it.t+(it.blob?"":" (só link)");
+const [v,x]=d.querySelectorAll("button");
+v.onclick=()=>{$("#mimg").src=src;$("#modal").style.display="flex"};
+x.onclick=async()=>{if(confirm("Excluir esta imagem?")){await tx("ia","readwrite",s=>s.delete(it.id));galIA()}};
+g.appendChild(d)})}catch(e){g.innerHTML='<p class="m">Armazenamento local indisponível.</p>'}}
+
+/* ===== v2: autorizações (base para futura troca de rosto) ===== */
+const amsg=t=>{$("#autMsg").textContent=t};
+$("#autSave").onclick=async()=>{const f=$("#autFile").files[0],n=$("#autNome").value.trim();
+if(!n||!f){amsg("Informe o nome e escolha uma foto.");return}
+if(!f.type.startsWith("image/")||f.size>8e6){amsg("Use uma imagem de até 8 MB.");return}
+if(!$("#autOk1").checked||!$("#autOk2").checked){amsg("Marque as duas declarações.");return}
+try{await tx("aut","readwrite",s=>s.put({id:Date.now(),nome:n,tipo:$("#autTipo").value,t:new Date().toLocaleString("pt-BR"),blob:f}));
+amsg("Autorização registrada neste aparelho.");$("#autNome").value="";$("#autFile").value="";autList()}catch(e){amsg("Não foi possível salvar (armazenamento indisponível).")}};
+async function autList(){const l=$("#autList");l.innerHTML="";
+try{const a=(await tx("aut","readonly",s=>s.getAll()))||[];
+if(!a.length)l.innerHTML='<p class="m">Nenhuma autorização registrada.</p>';
+a.forEach(it=>{const d=document.createElement("div");d.className="g";
+d.innerHTML='<img alt="Foto autorizada" style="width:100%;border-radius:10px;aspect-ratio:1;object-fit:cover"><b></b><div class="m"></div><button class="btn s" style="width:100%;padding:7px;margin-top:6px">Apagar</button>';
+d.querySelector("img").src=URL.createObjectURL(it.blob);d.querySelector("b").textContent=it.nome;d.querySelector(".m").textContent=it.tipo+" · "+it.t;
+d.querySelector("button").onclick=async()=>{if(confirm("Apagar a foto e o registro de autorização?")){await tx("aut","readwrite",s=>s.delete(it.id));autList()}};
+l.appendChild(d)})}catch(e){l.innerHTML='<p class="m">Armazenamento local indisponível.</p>'}}
+
+/* ===== v2: pontos de extensão (somente o que já existe) ===== */
+window.AAS={versao:"2.0",
+geradores:{pollinations:{nome:"Pollinations (anônimo)",ativo:true}},
+animacao:{setBoca:v=>{mouth=v;draw()},visemas:null},
+trocaFacial:{ativo:false,exigeAutorizacao:true}};
+
+ui();draw();
+</script></body></html>

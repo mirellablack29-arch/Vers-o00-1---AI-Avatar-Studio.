@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Avatar Studio · Teste 3D</title>
+<style>
+:root{--bg:#f6f5fb;--card:#fff;--tx:#1d1b2e;--mu:#6b6882;--ac:#6c4cf1;--on:#fff;--bd:#e3e0f0;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#141320;--card:#1e1c30;--tx:#f0eefb;--mu:#a09cbf;--ac:#8b73ff;--on:#10101a;--bd:#34314f;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:560px;margin:0 auto}
+header{padding:12px 16px 4px}header a{color:var(--ac);font-size:13px;text-decoration:none}
+h1{font-size:18px;margin:4px 0 0}h1 small{color:var(--mu);font-weight:400;font-size:12px;margin-left:6px}
+#view{position:sticky;top:0;z-index:5;height:48vh;margin:8px 16px;border:1px solid var(--bd);border-radius:18px;overflow:hidden;background:var(--card)}
+#cv{width:100%;height:100%;display:block;touch-action:none}@media (orientation:landscape) and (max-height:520px){#view{height:80vh}}input[type=range]{width:100%}
+#msg{position:absolute;inset:auto 8px 8px 8px;font-size:12px;color:var(--mu);background:var(--card);border-radius:8px;padding:6px 8px}#msg:empty{display:none}
+main{padding:4px 16px 40px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:12px;margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:13px;color:var(--mu);text-transform:uppercase;letter-spacing:.04em}
+.btn{padding:11px 14px;border-radius:12px;border:0;background:var(--ac);color:var(--on);font-size:15px;font-weight:600}
+.btn.s{background:transparent;color:var(--tx);border:1px solid var(--bd)}.btn:disabled{opacity:.5}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row .btn{flex:1}
+label{display:block;margin:8px 0 4px;color:var(--mu);font-size:13px}
+select,input[type=file]{width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit}
+pre{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:8px;margin:8px 0 0}
+.m{color:var(--mu);font-size:13px}
+</style></head><body>
+<header><a href="index.html">← Voltar ao app</a><h1>Teste 3D<small>Etapa 0 · não altera o app</small></h1></header>
+<div id="view"><canvas id="cv"></canvas><div id="msg">Carregando o motor 3D…</div></div>
+<main>
+<div class="card"><h3>Seu aparelho</h3><pre id="info">Lendo…</pre></div>
+
+<div class="card"><h3>Teste manual</h3>
+<label>Carga de triângulos (esfera de teste ao lado do boneco)</label>
+<select id="load"><option value="20000">Leve (~20 mil)</option><option value="60000">Média (~60 mil)</option><option value="150000">Alta (~150 mil)</option><option value="300000">Muito alta (~300 mil)</option></select>
+<label>Textura do boneco</label>
+<select id="tex"><option value="0">Nenhuma</option><option value="1024" selected>1024 px</option><option value="2048">2048 px</option><option value="4096">4096 px (pesado)</option></select>
+<p class="m" id="tri"></p>
+<label>Tamanho do personagem na tela: <span id="sizev">30%</span></label>
+<input type="range" id="size" min="20" max="70" step="5" value="30">
+<div class="row" style="margin-top:8px"><button class="btn s" id="vFit">🎯 Enquadrar</button><button class="btn s" id="vFront">Frente</button><button class="btn s" id="vSide">Lado</button><button class="btn s" id="vBack">Costas</button></div>
+<div class="row" style="margin-top:8px"><button class="btn s" id="rot">⏯️ Girar sozinho</button></div>
+<p class="m">Arraste com um dedo para girar. Use dois dedos (pinça) para aproximar.</p></div>
+
+<div class="card"><h3>Teste automático (≈ 20 s)</h3>
+<p class="m">Mede os quadros por segundo em 4 níveis de carga, com textura 2048. Não mexa na tela durante o teste.</p>
+<button class="btn" id="auto" style="width:100%">▶️ Rodar teste</button>
+<pre id="res">Ainda não executado.</pre>
+<button class="btn s" id="copy" style="width:100%;margin-top:8px">📋 Copiar resultado completo</button></div>
+
+<div class="card"><h3>Meu modelo GLB (opcional)</h3>
+<p class="m">Abre um arquivo .glb do seu aparelho só para medir. O arquivo não é enviado a lugar nenhum. Use apenas modelos que você tem direito de usar. Modelos com compressão Draco ou KTX2 ainda não são lidos neste teste.</p>
+<input type="file" id="glb" accept=".glb,model/gltf-binary">
+<div class="row" style="margin-top:8px"><button class="btn s" id="back">Voltar ao boneco de teste</button></div>
+<pre id="glbinfo">Nenhum modelo carregado.</pre></div>
+
+<p class="m">O boneco é uma figura simples gerada por código próprio (sem modelo de terceiros). O motor 3D (Three.js) é carregado do jsDelivr, então este teste precisa de internet. Nenhum dado seu é enviado.</p>
+</main>
+
+<script>
+/* Informações do aparelho (não depende do 3D) */
+const I={},ua=navigator.userAgent,qs=s=>document.querySelector(s);
+I["Navegador"]=(ua.match(/(SamsungBrowser|EdgA|Firefox|Chrome)\/([\d.]+)/)||[0,"?","?"]).slice(1).join(" ");
+I["Android"]=(ua.match(/Android ([\d.]+)/)||[0,"?"])[1];
+I["Núcleos de CPU"]=navigator.hardwareConcurrency||"?";
+I["RAM (aprox., limite 8)"]=navigator.deviceMemory?navigator.deviceMemory+" GB":"não informada";
+I["Tela"]=screen.width+"×"+screen.height+" @"+devicePixelRatio+"x";
+let g=null;try{const c=document.createElement("canvas");g=c.getContext("webgl2")||c.getContext("webgl")}catch(e){}
+I["WebGL"]=g?(window.WebGL2RenderingContext&&g instanceof WebGL2RenderingContext?"2":"1"):"indisponível";
+if(g){const d=g.getExtension("WEBGL_debug_renderer_info");I["GPU"]=d?g.getParameter(d.UNMASKED_RENDERER_WEBGL):g.getParameter(g.RENDERER)+" (oculto)";I["Textura máxima"]=g.getParameter(g.MAX_TEXTURE_SIZE)+" px"}
+I["Gravação de vídeo"]=window.MediaRecorder?"sim":"não";
+I["IndexedDB"]=window.indexedDB?"sim":"não";
+if(performance.memory)I["Memória JS (limite)"]=Math.round(performance.memory.jsHeapSizeLimit/1e6)+" MB";
+const showInfo=()=>{qs("#info").textContent=Object.entries(I).map(([k,v])=>k+": "+v).join("\n")};showInfo();
+if(navigator.storage&&navigator.storage.estimate)navigator.storage.estimate().then(e=>{I["Armazenamento livre (aprox.)"]=Math.round((e.quota-e.usage)/1e6)+" MB";showInfo()}).catch(()=>{});
+</script>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+const $=s=>document.querySelector(s),msg=t=>{$("#msg").textContent=t};
+let THREE,OrbitControls,GLTFLoader;
+try{THREE=await import("three");({OrbitControls}=await import("three/addons/controls/OrbitControls.js"));({GLTFLoader}=await import("three/addons/loaders/GLTFLoader.js"))}
+catch(e){msg("Não foi possível carregar o motor 3D (sem internet ou bloqueio). Detalhe: "+e.message);throw e}
+
+const cv=$("#cv"),R=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true,powerPreference:"high-performance"});
+R.setPixelRatio(Math.min(devicePixelRatio,2));
+cv.addEventListener("webglcontextlost",e=>{e.preventDefault();msg("O navegador perdeu o contexto 3D (provável falta de memória). Reduza a carga ou a textura e recarregue a página.")});
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(40,1,.1,100);cam.position.set(0,1,6);
+scene.add(new THREE.HemisphereLight(0xffffff,0x555566,1.1));const dl=new THREE.DirectionalLight(0xffffff,2);dl.position.set(3,5,4);scene.add(dl);
+scene.add(new THREE.GridHelper(6,12,0x888888,0x888888));
+const ctl=new OrbitControls(cam,cv);ctl.target.set(0,.9,0);ctl.enableDamping=true;ctl.enablePan=false;ctl.minDistance=.9;ctl.maxDistance=20;ctl.autoRotate=false;ctl.autoRotateSpeed=2;
+const fit=()=>{const w=cv.clientWidth,h=cv.clientHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()};addEventListener("resize",fit);fit();
+
+/* Boneco de teste (código próprio) */
+const skin=new THREE.MeshStandardMaterial({color:0xd9a98a,roughness:.6}),fig=new THREE.Group();
+const add=(geo,x,y,z,sx=1,sy=1,sz=1)=>{const m=new THREE.Mesh(geo,skin);m.position.set(x,y,z);m.scale.set(sx,sy,sz);fig.add(m)};
+add(new THREE.SphereGeometry(.12,48,32),0,1.62,0,1,1.2,1.05);
+add(new THREE.CylinderGeometry(.05,.06,.1,24),0,1.48,0);
+add(new THREE.CapsuleGeometry(.17,.4,8,24),0,1.2,0,1.1,1,.65);
+[-1,1].forEach(s=>{add(new THREE.CapsuleGeometry(.045,.55,8,16),s*.27,1.15,0);add(new THREE.CapsuleGeometry(.075,.7,8,16),s*.1,.5,0)});
+scene.add(fig);
+
+/* Carga e textura de teste */
+let blk=null,tex=null,gm=null;
+const tris=o=>{let n=0;o.traverse(m=>{if(m.isMesh&&m.visible){const gg=m.geometry;n+=(gg.index?gg.index.count:gg.attributes.position.count)/3}});return Math.round(n)};
+const upd=()=>{$("#tri").textContent="Triângulos na cena: "+tris(scene).toLocaleString("pt-BR")};
+function setLoad(t){const h=Math.max(4,Math.round(Math.sqrt(t/4)));if(blk){blk.geometry.dispose();scene.remove(blk)}
+blk=new THREE.Mesh(new THREE.SphereGeometry(.3,h*2,h),skin);blk.position.set(.9,1,0);blk.visible=!gm;scene.add(blk);upd()}
+function setTex(sz){if(tex){tex.dispose();tex=null}skin.map=null;
+if(sz>0){const c=document.createElement("canvas");c.width=c.height=sz;const x=c.getContext("2d");x.fillStyle="#d9a98a";x.fillRect(0,0,sz,sz);
+for(let i=0;i<400;i++){x.fillStyle="hsla("+(15+Math.random()*10)+","+(40+Math.random()*20)+"%,"+(50+Math.random()*25)+"%,.15)";x.beginPath();x.arc(Math.random()*sz,Math.random()*sz,Math.random()*sz/6,0,7);x.fill()}
+tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=4;skin.map=tex}
+skin.needsUpdate=true}
+setTex(1024);setLoad(2e4);msg("");
+
+/* Enquadramento automático: corpo inteiro, centralizado, de frente, com margem */
+let FILL=.30,baseD=0;
+function calcDist(s,fovDeg,asp,fill){const t=Math.tan(fovDeg*Math.PI/360),rad=Math.hypot(s.x,s.z)/2;return Math.max((s.y/2)/t,rad/(t*asp))/fill+rad}
+function frame(keep){if(!(cam.aspect>0)||!isFinite(cam.aspect))return;const b=new THREE.Box3().setFromObject(gm||fig);if(b.isEmpty())return;
+const s=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),d=calcDist(s,cam.fov,cam.aspect,FILL),k=keep&&baseD;
+const dir=k?cam.position.clone().sub(ctl.target).normalize():new THREE.Vector3(0,0,1),z=k?cam.position.distanceTo(ctl.target)/baseD:1;
+baseD=d;ctl.target.copy(c);cam.position.copy(c).addScaledVector(dir,d*z);
+ctl.minDistance=.9;ctl.maxDistance=d*3;cam.near=d/50;cam.far=d*40;cam.updateProjectionMatrix();ctl.update()}
+function viewAz(az){const t=ctl.target,d=cam.position.distanceTo(t);ctl.autoRotate=false;cam.position.set(t.x+d*Math.sin(az),t.y,t.z+d*Math.cos(az));ctl.update()}
+$("#vFit").onclick=()=>frame(false);$("#vFront").onclick=()=>viewAz(0);$("#vSide").onclick=()=>viewAz(Math.PI/2);$("#vBack").onclick=()=>viewAz(Math.PI);
+$("#size").oninput=e=>{FILL=e.target.value/100;$("#sizev").textContent=e.target.value+"%";frame(true)};
+frame(false);new ResizeObserver(()=>{fit();frame(true)}).observe($("#view"));
+
+/* Laço de renderização e medição */
+let last=performance.now(),samp=null;
+R.setAnimationLoop(now=>{const dt=now-last;last=now;if(samp)samp.push(dt);ctl.update();R.render(scene,cam)});
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function measure(ms){samp=[];await sleep(ms);const a=samp.slice(5);samp=null;if(!a.length)return{fps:0,p95:0};
+const m=a.reduce((x,y)=>x+y,0)/a.length,s=[...a].sort((x,y)=>x-y);return{fps:Math.round(1000/m),p95:Math.round(s[Math.floor(s.length*.95)])}}
+
+$("#load").onchange=e=>setLoad(+e.target.value);
+$("#tex").onchange=e=>setTex(+e.target.value);
+$("#rot").onclick=()=>{ctl.autoRotate=!ctl.autoRotate};
+const res=t=>{$("#res").textContent=t};
+$("#auto").onclick=async()=>{const b=$("#auto");const was=ctl.autoRotate;b.disabled=true;ctl.autoRotate=true;setTex(2048);$("#tex").value="2048";
+const L=[["Leve",2e4],["Média",6e4],["Alta",15e4],["Muito alta",3e5]],out=[];let ok=0;
+for(const [n,t] of L){res("Testando "+n+"…\n"+out.join("\n"));setLoad(t);$("#load").value=String(t);await sleep(700);
+const r=await measure(4000);out.push(n+" (~"+t/1000+" mil tri): "+r.fps+" FPS, quadro lento "+r.p95+" ms");if(r.fps>=30)ok=t}
+out.push("");out.push(ok?"Sugestão provisória: até ~"+ok/1000+" mil triângulos com textura 2048 (estimativa; modelos reais com esqueleto custam mais).":"Nem o nível leve chegou a 30 FPS; precisaremos de modelos ainda mais simples.");
+res(out.join("\n"));b.disabled=false;ctl.autoRotate=was;frame(false)};
+
+/* GLB do usuário (somente medição) */
+const gi=t=>{$("#glbinfo").textContent=t};
+$("#glb").onchange=async e=>{const f=e.target.files[0];if(!f)return;gi("Lendo…");
+try{const buf=await f.arrayBuffer();new GLTFLoader().parse(buf,"",gl=>{
+if(gm)scene.remove(gm);gm=gl.scene;const bx=new THREE.Box3().setFromObject(gm),sz=bx.getSize(new THREE.Vector3());gm.scale.multiplyScalar(1.8/Math.max(sz.y,.001));
+bx.setFromObject(gm);gm.position.y-=bx.min.y;gm.position.x-=(bx.min.x+bx.max.x)/2;gm.position.z-=(bx.min.z+bx.max.z)/2;scene.add(gm);fig.visible=false;if(blk)blk.visible=false;frame(false);
+let sk=0,mem=0;const seen=new Set();gm.traverse(m=>{if(m.isSkinnedMesh)sk++;if(m.isMesh){[].concat(m.material).forEach(mt=>Object.values(mt).forEach(v=>{if(v&&v.isTexture&&v.image&&!seen.has(v)){seen.add(v);mem+=(v.image.width||0)*(v.image.height||0)*4*1.33}}))}});
+gi("Arquivo: "+(f.size/1e6).toFixed(1)+" MB\nTriângulos: "+tris(gm).toLocaleString("pt-BR")+"\nMalhas com esqueleto: "+sk+"\nTexturas: "+seen.size+" (~"+Math.round(mem/1e6)+" MB na GPU, estimativa)");upd()},
+err=>gi("Não foi possível ler o modelo: "+(err.message||err)))}catch(er){gi("Erro: "+er.message)}};
+$("#back").onclick=()=>{if(gm){scene.remove(gm);gm=null}fig.visible=true;if(blk)blk.visible=true;gi("Nenhum modelo carregado.");upd();frame(false)};
+
+$("#copy").onclick=async()=>{const t="AI Avatar Studio · Teste 3D (Etapa 0)\n\n"+$("#info").textContent+"\n\n"+$("#res").textContent+"\n\n"+$("#glbinfo").textContent;
+try{await navigator.clipboard.writeText(t);$("#copy").textContent="✅ Copiado"}catch(e){$("#copy").textContent="Não foi possível copiar; selecione o texto manualmente"}};
+</script>
+</body></html>

@@ -9,8 +9,8 @@
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:560px;margin:0 auto}
 header{padding:12px 16px 4px}header a{color:var(--ac);font-size:13px;text-decoration:none}
 h1{font-size:18px;margin:4px 0 0}h1 small{color:var(--mu);font-weight:400;font-size:12px;margin-left:6px}
-#view{position:sticky;top:0;z-index:5;height:48vh;margin:8px 16px;border:1px solid var(--bd);border-radius:18px;overflow:hidden;background:var(--card)}
-#cv{width:100%;height:100%;display:block;touch-action:none}
+#view{position:sticky;top:0;z-index:5;height:48vh;height:48dvh;margin:8px 16px;border:1px solid var(--bd);border-radius:18px;overflow:hidden;background:var(--card)}
+#cv{width:100%;height:100%;display:block;touch-action:none}@media (orientation:landscape) and (max-height:520px){#view{height:80vh;height:80dvh}}#diag{margin:0 16px;font-size:12px;color:var(--mu)}body{overscroll-behavior-y:contain}input[type=range]{width:100%}
 #msg{position:absolute;inset:auto 8px 8px 8px;font-size:12px;color:var(--mu);background:var(--card);border-radius:8px;padding:6px 8px}#msg:empty{display:none}
 main{padding:4px 16px 40px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:12px;margin-bottom:12px}
@@ -25,6 +25,7 @@ pre{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--b
 </style></head><body>
 <header><a href="index.html">← Voltar ao app</a><h1>Teste 3D<small>Etapa 0 · não altera o app</small></h1></header>
 <div id="view"><canvas id="cv"></canvas><div id="msg">Carregando o motor 3D…</div></div>
+<div id="diag">Enquadramento: aguardando…</div>
 <main>
 <div class="card"><h3>Seu aparelho</h3><pre id="info">Lendo…</pre></div>
 
@@ -34,7 +35,11 @@ pre{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--b
 <label>Textura do boneco</label>
 <select id="tex"><option value="0">Nenhuma</option><option value="1024" selected>1024 px</option><option value="2048">2048 px</option><option value="4096">4096 px (pesado)</option></select>
 <p class="m" id="tri"></p>
-<div class="row"><button class="btn s" id="rot">⏯️ Girar sozinho</button></div>
+<label>Altura do personagem na área 3D: <span id="sizev">15%</span></label>
+<input type="range" id="size" min="8" max="60" step="1" value="15">
+<div class="row" style="margin-top:8px"><button class="btn s" id="vFit">🎯 Enquadrar</button><button class="btn s" id="vFront">Frente</button><button class="btn s" id="vSide">Lado</button><button class="btn s" id="vBack">Costas</button></div>
+<div class="row" style="margin-top:8px"><button class="btn s" id="zOut">➖ Afastar</button><button class="btn s" id="zIn">➕ Aproximar</button></div>
+<div class="row" style="margin-top:8px"><button class="btn s" id="rot">⏯️ Girar sozinho</button></div>
 <p class="m">Arraste com um dedo para girar. Use dois dedos (pinça) para aproximar.</p></div>
 
 <div class="card"><h3>Teste automático (≈ 20 s)</h3>
@@ -80,11 +85,11 @@ catch(e){msg("Não foi possível carregar o motor 3D (sem internet ou bloqueio).
 const cv=$("#cv"),R=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true,powerPreference:"high-performance"});
 R.setPixelRatio(Math.min(devicePixelRatio,2));
 cv.addEventListener("webglcontextlost",e=>{e.preventDefault();msg("O navegador perdeu o contexto 3D (provável falta de memória). Reduza a carga ou a textura e recarregue a página.")});
-const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(40,1,.1,100);cam.position.set(0,1.3,4.6);
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(40,1,.1,100);cam.position.set(0,1,6);
 scene.add(new THREE.HemisphereLight(0xffffff,0x555566,1.1));const dl=new THREE.DirectionalLight(0xffffff,2);dl.position.set(3,5,4);scene.add(dl);
 scene.add(new THREE.GridHelper(6,12,0x888888,0x888888));
-const ctl=new OrbitControls(cam,cv);ctl.target.set(.3,1,0);ctl.enableDamping=true;ctl.enablePan=false;ctl.minDistance=1.5;ctl.maxDistance=9;ctl.autoRotate=true;ctl.autoRotateSpeed=2;
-const fit=()=>{const w=cv.clientWidth,h=cv.clientHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()};addEventListener("resize",fit);fit();
+const ctl=new OrbitControls(cam,cv);ctl.target.set(0,.9,0);ctl.enableDamping=true;ctl.enablePan=false;ctl.minDistance=.9;ctl.maxDistance=20;ctl.autoRotate=false;ctl.autoRotateSpeed=2;
+const fit=()=>{const w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()};addEventListener("resize",fit);fit();
 
 /* Boneco de teste (código próprio) */
 const skin=new THREE.MeshStandardMaterial({color:0xd9a98a,roughness:.6}),fig=new THREE.Group();
@@ -108,6 +113,28 @@ tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotrop
 skin.needsUpdate=true}
 setTex(1024);setLoad(2e4);msg("");
 
+/* Enquadramento v4: corpo inteiro, distante, centralizado, de frente. Ajuste em malha fechada (mede a projeção real) */
+let FILL=.15,baseD=0,LB=null,dtm=0;
+const AND=/Android/i.test(navigator.userAgent),V3=new THREE.Vector3();
+function subj(){const o=gm||fig;o.updateMatrixWorld(true);const b=new THREE.Box3();try{b.setFromObject(o,true)}catch(e){b.setFromObject(o)}return b}
+function calcDist(s,fovDeg,asp,fill){const t=Math.tan(fovDeg*Math.PI/360),rad=Math.hypot(s.x,s.z)/2;return Math.max((s.y/2)/t,rad/(t*asp))/fill+rad}
+function occupied(b){cam.updateMatrixWorld(true);let lo=1e9,hi=-1e9;for(let i=0;i<8;i++){V3.set(i&1?b.max.x:b.min.x,i&2?b.max.y:b.min.y,i&4?b.max.z:b.min.z).project(cam);lo=Math.min(lo,V3.y);hi=Math.max(hi,V3.y)}return (hi-lo)/2}
+function diag(){if(!LB)return;const s=LB.getSize(new THREE.Vector3());
+$("#diag").textContent="Enquadramento v4 · "+(AND?"Android":"outro aparelho")+" · corpo "+s.y.toFixed(2)+" m · câmera a "+cam.position.distanceTo(ctl.target).toFixed(1)+" m · ocupa "+Math.round(occupied(LB)*100)+"% da altura · área "+cv.clientWidth+"×"+cv.clientHeight+" px"}
+function frame(keep,resetZoom){if(!(cam.aspect>0)||!isFinite(cam.aspect))return;const b=subj();if(b.isEmpty())return;LB=b;
+const s=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),k=keep&&baseD,
+dir=k?cam.position.clone().sub(ctl.target).normalize():new THREE.Vector3(0,0,1),z=k&&!resetZoom?cam.position.distanceTo(ctl.target)/baseD:1;
+let d=calcDist(s,cam.fov,cam.aspect,FILL);ctl.target.copy(c);ctl.minDistance=.5;ctl.maxDistance=1e6;cam.near=.05;cam.far=1e6;
+for(let i=0;i<4;i++){cam.position.copy(c).addScaledVector(dir,d);cam.updateProjectionMatrix();ctl.update();const m=occupied(b);if(m>0)d*=m/FILL}
+baseD=d;cam.position.copy(c).addScaledVector(dir,d*z);ctl.minDistance=.9;ctl.maxDistance=d*3;cam.near=d/50;cam.far=d*40;cam.updateProjectionMatrix();ctl.update();diag()}
+function viewAz(az){const t=ctl.target,d=cam.position.distanceTo(t);ctl.autoRotate=false;cam.position.set(t.x+d*Math.sin(az),t.y,t.z+d*Math.cos(az));ctl.update()}
+const zoomBy=f=>{const t=ctl.target,d=Math.min(ctl.maxDistance,Math.max(ctl.minDistance,cam.position.distanceTo(t)*f));cam.position.sub(t).setLength(d).add(t);ctl.update()};
+$("#vFit").onclick=()=>frame(false);$("#vFront").onclick=()=>viewAz(0);$("#vSide").onclick=()=>viewAz(Math.PI/2);$("#vBack").onclick=()=>viewAz(Math.PI);
+$("#zIn").onclick=()=>zoomBy(.7);$("#zOut").onclick=()=>zoomBy(1.4);
+$("#size").oninput=e=>{FILL=e.target.value/100;$("#sizev").textContent=e.target.value+"%";frame(true,true)};
+ctl.addEventListener("change",()=>{const n=performance.now();if(n-dtm>250){dtm=n;diag()}});
+frame(false);let rt=0;new ResizeObserver(()=>{clearTimeout(rt);rt=setTimeout(()=>{fit();frame(true)},120)}).observe($("#view"));
+
 /* Laço de renderização e medição */
 let last=performance.now(),samp=null;
 R.setAnimationLoop(now=>{const dt=now-last;last=now;if(samp)samp.push(dt);ctl.update();R.render(scene,cam)});
@@ -119,23 +146,23 @@ $("#load").onchange=e=>setLoad(+e.target.value);
 $("#tex").onchange=e=>setTex(+e.target.value);
 $("#rot").onclick=()=>{ctl.autoRotate=!ctl.autoRotate};
 const res=t=>{$("#res").textContent=t};
-$("#auto").onclick=async()=>{const b=$("#auto");b.disabled=true;ctl.autoRotate=true;setTex(2048);$("#tex").value="2048";
+$("#auto").onclick=async()=>{const b=$("#auto");const was=ctl.autoRotate;b.disabled=true;ctl.autoRotate=true;setTex(2048);$("#tex").value="2048";
 const L=[["Leve",2e4],["Média",6e4],["Alta",15e4],["Muito alta",3e5]],out=[];let ok=0;
 for(const [n,t] of L){res("Testando "+n+"…\n"+out.join("\n"));setLoad(t);$("#load").value=String(t);await sleep(700);
 const r=await measure(4000);out.push(n+" (~"+t/1000+" mil tri): "+r.fps+" FPS, quadro lento "+r.p95+" ms");if(r.fps>=30)ok=t}
 out.push("");out.push(ok?"Sugestão provisória: até ~"+ok/1000+" mil triângulos com textura 2048 (estimativa; modelos reais com esqueleto custam mais).":"Nem o nível leve chegou a 30 FPS; precisaremos de modelos ainda mais simples.");
-res(out.join("\n"));b.disabled=false};
+res(out.join("\n"));b.disabled=false;ctl.autoRotate=was;frame(false)};
 
 /* GLB do usuário (somente medição) */
 const gi=t=>{$("#glbinfo").textContent=t};
 $("#glb").onchange=async e=>{const f=e.target.files[0];if(!f)return;gi("Lendo…");
 try{const buf=await f.arrayBuffer();new GLTFLoader().parse(buf,"",gl=>{
 if(gm)scene.remove(gm);gm=gl.scene;const bx=new THREE.Box3().setFromObject(gm),sz=bx.getSize(new THREE.Vector3());gm.scale.multiplyScalar(1.8/Math.max(sz.y,.001));
-bx.setFromObject(gm);gm.position.y-=bx.min.y;gm.position.x-=(bx.min.x+bx.max.x)/2;gm.position.z-=(bx.min.z+bx.max.z)/2;scene.add(gm);fig.visible=false;if(blk)blk.visible=false;
+bx.setFromObject(gm);gm.position.y-=bx.min.y;gm.position.x-=(bx.min.x+bx.max.x)/2;gm.position.z-=(bx.min.z+bx.max.z)/2;scene.add(gm);fig.visible=false;if(blk)blk.visible=false;frame(false);
 let sk=0,mem=0;const seen=new Set();gm.traverse(m=>{if(m.isSkinnedMesh)sk++;if(m.isMesh){[].concat(m.material).forEach(mt=>Object.values(mt).forEach(v=>{if(v&&v.isTexture&&v.image&&!seen.has(v)){seen.add(v);mem+=(v.image.width||0)*(v.image.height||0)*4*1.33}}))}});
 gi("Arquivo: "+(f.size/1e6).toFixed(1)+" MB\nTriângulos: "+tris(gm).toLocaleString("pt-BR")+"\nMalhas com esqueleto: "+sk+"\nTexturas: "+seen.size+" (~"+Math.round(mem/1e6)+" MB na GPU, estimativa)");upd()},
 err=>gi("Não foi possível ler o modelo: "+(err.message||err)))}catch(er){gi("Erro: "+er.message)}};
-$("#back").onclick=()=>{if(gm){scene.remove(gm);gm=null}fig.visible=true;if(blk)blk.visible=true;gi("Nenhum modelo carregado.");upd()};
+$("#back").onclick=()=>{if(gm){scene.remove(gm);gm=null}fig.visible=true;if(blk)blk.visible=true;gi("Nenhum modelo carregado.");upd();frame(false)};
 
 $("#copy").onclick=async()=>{const t="AI Avatar Studio · Teste 3D (Etapa 0)\n\n"+$("#info").textContent+"\n\n"+$("#res").textContent+"\n\n"+$("#glbinfo").textContent;
 try{await navigator.clipboard.writeText(t);$("#copy").textContent="✅ Copiado"}catch(e){$("#copy").textContent="Não foi possível copiar; selecione o texto manualmente"}};
